@@ -1,5 +1,5 @@
 #lang eopl
-(require "auxiliar.rkt")  
+
 ;; ============================Primitivas============================
 (define lexica
   '((white-sp
@@ -16,14 +16,6 @@
    (digit (arbno digit)) number)
   (digitoDecimal
    ("-" digit (arbno digit)) number)
-  (digitoOctal
-   ("0x" (or "0" "1" "2" "3" "4" "5" "6" "7")(arbno (or "0" "1" "2" "3" "4" "5" "6" "7"))) string)
-  (digitoOctal
-   ("-" "0x" (or "0" "1" "2" "3" "4" "5" "6" "7") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7"))) string)
-  (digitoHexadecimal
-   ("hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
-  (digitoHexadecimal
-   ("-" "hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string) 
   (flotante
    (digit (arbno digit) "." digit (arbno digit)) number)
   (flotante
@@ -53,7 +45,6 @@
     ;;Primitiva listas
     (expresion (primitivaListas "(" expresion ")") prim-list-exp)
     ;;Primitiva array
-    (expresion (primitivaArray "(" (separated-list expresion ",") ")") prim-array-exp)
     ;;Primitiva de cadenas
     (expresion (primitivaCadena "(" (separated-list expresion ",") ")") prim-cad-exp)
 
@@ -80,9 +71,6 @@
 
     ;;Numero-exp
     (numero-exp (digitoDecimal) decimal-num)
-    (numero-exp (digitoOctal) octal-num)
-    (numero-exp (digitoBinario) bin-num)
-    (numero-exp (digitoHexadecimal) hex-num)
     (numero-exp (flotante) float-num)
     
     ;;Bool-exp
@@ -192,9 +180,6 @@
       (num-exp (num) 
         (cases numero-exp num
           (decimal-num (num) num)
-          (octal-num (num) (parse-string num))
-          (bin-num (num) (parse-string num))
-          (hex-num (num) (parse-string num))
           (float-num (num) num)))
       (cadena-exp (id1 id2)
         (letrec
@@ -249,10 +234,6 @@
       (prim-list-exp (prim exp) 
        (apply-list-primitive prim (eval-expression exp env)) 
       )
-      (prim-array-exp (prim lexps)
-                      (let (
-                            (args (eval-rands lexps env)))
-                        (apply-array-primitive prim args)))
       (prim-cad-exp (prim lexps)
                      (apply-cadena-primitive prim
                                             (map (lambda (lexps)
@@ -358,18 +339,19 @@
 (define apply-num-primitive
   (lambda (prim num1 num2)
     (cases primitiva prim
-      (sum-prim () (operation-numerical + num1 num2 #F))
-      (minus-prim () (operation-numerical - num1 num2 #F))
-      (mult-prim () (operation-numerical * num1 num2 #F))
-      (mod-prim () (operation-numerical modulo num1 num2 #F) )
-      (elevar-prim () (operation-numerical expt num1 num2 #F ))
-      (menor-prim () (operation-numerical < num1 num2 #T))
-      (mayor-prim () (operation-numerical > num1 num2 #T))
-      (menorigual-prim () (operation-numerical <= num1 num2 #T))
-      (mayorigual-prim () (operation-numerical >= num1 num2 #T))
-      (diferente-prim () (not (operation-numerical eq? num1 num2 #T)))
-      (igual-prim () (operation-numerical eq? num1 num2 #T))
+      (sum-prim () (+ num1 num2))
+      (minus-prim () (- num1 num2))
+      (mult-prim () (* num1 num2))
+      (mod-prim () (modulo num1 num2))
+      (elevar-prim () (expt num1 num2))
+      (menor-prim () (< num1 num2))
+      (mayor-prim () (> num1 num2))
+      (menorigual-prim () (<= num1 num2))
+      (mayorigual-prim () (>= num1 num2))
+      (diferente-prim () (not (= num1 num2)))
+      (igual-prim () (= num1 num2))
       )
+      
   ))
 (define apply-bool-primitive
   (lambda (prim args)
@@ -393,27 +375,7 @@
       (empty-primList () (null? args))
     )
   ))
-(define apply-array-primitive
-  (lambda (prim args)
-    (cases primitivaArray prim
-      (length-primArr () (vector-length (car args)))
-      (index-primArr () (let (
-                              (arr (car args))
-                              (index (cadr args)))
-                           (vector-ref arr index)))
-      (slice-primArr() (let (
-                             (vec (car args))
-                             (start (cadr args))
-                             (end (caddr args)))
-                         (array-slice vec start end)))
-      (setlist-primArr () (let (
-                                (vec (car args))
-                                (pos (cadr args))
-                                (val (caddr args)))
-                            (vector-set! vec pos val)
-                             vec))
-    )
-  ))
+
 (define apply-cadena-primitive  
   (lambda (prim args)
       (cases primitivaCadena prim
